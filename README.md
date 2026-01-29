@@ -1,10 +1,10 @@
-# 🚁 Kosovo Drone Traffic Management System (KDTMS)
+#  Kosovo Drone Traffic Management System (KDTMS)
 
 A comprehensive web application for simulating drone traffic management in Kosovo, featuring real-time flight tracking, AI-powered recommendations, restricted zone visualization, and full KCAA (Kosovo Civil Aviation Authority) regulatory compliance.
 
 ![KDTMS](https://img.shields.io/badge/Version-2.0.0-brightgreen) ![Node.js](https://img.shields.io/badge/Node.js-18+-blue) ![MongoDB](https://img.shields.io/badge/MongoDB-Ready-green) ![License](https://img.shields.io/badge/License-Educational-orange)
 
-## 🌟 Features
+##  Features
 
 ### Core Functionality
 - **User Authentication**: Secure registration and login with JWT tokens
