@@ -37,7 +37,7 @@ A comprehensive web application for simulating drone traffic management in Kosov
 - **Border Validation**: Automatic rejection of flights outside Kosovo
 - **Trajectory Validation**: Path crossing detection - flights cannot cross outside Kosovo
 
-## 🗺️ Map Features
+##  Map Features
 
 ### Restricted Zones Displayed
 - **Airports**: Prishtina International (BKPR), Gjakova Airport (BKGJ)
@@ -56,7 +56,7 @@ A comprehensive web application for simulating drone traffic management in Kosov
 - Live airplane markers with heading indicators
 - Flight path visualization (green for valid, red for invalid)
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Backend
 - **Runtime**: Node.js 18+
@@ -76,7 +76,7 @@ A comprehensive web application for simulating drone traffic management in Kosov
 - **WeatherAPI.com**: Real weather forecasts
 - **OpenSky Network**: Live airplane traffic
 
-## 📦 Installation
+##  Installation
 
 ### Prerequisites
 - Node.js 18 or higher
