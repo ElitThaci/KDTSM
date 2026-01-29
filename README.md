@@ -116,7 +116,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kdtms
 # Use MongoDB Compass to connect and manage the database
 ```
 
-## 🚀 Usage
+##  Usage
 
 ### Getting Started
 
@@ -130,10 +130,10 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kdtms
 
 | Tool | Description |
 |------|-------------|
-| 📍 Waypoints | Click map to add sequential waypoints |
-| ⭕ Circle | Draw circular operation area (entire area = flight zone) |
-| ▢ Rectangle | Draw rectangular operation area (entire area = flight zone) |
-| 🗑️ Clear | Remove all waypoints and drawings |
+|  Waypoints | Click map to add sequential waypoints |
+|  Circle | Draw circular operation area (entire area = flight zone) |
+|  Rectangle | Draw rectangular operation area (entire area = flight zone) |
+|  Clear | Remove all waypoints and drawings |
 
 ### Drone Selection
 
@@ -145,7 +145,7 @@ Over 20 drone models available including:
 - **Fixed Wing**: eBee X, WingtraOne
 - **DIY Option**: Custom drone with user-defined specs
 
-## 🤖 AI Features & Future Enhancements
+##  AI Features & Future Enhancements
 
 ### Current AI Features
 - Weather-based flight scoring
@@ -199,7 +199,7 @@ Over 20 drone models available including:
     - Generate visual flight path previews
     - 3D terrain visualization with AI
 
-## 📊 Database Schema
+##  Database Schema
 
 ### Users Collection
 - Authentication credentials
@@ -217,7 +217,7 @@ Over 20 drone models available including:
 - Conflict records
 - Telemetry logs
 
-## 📋 KCAA Regulations Implemented
+##  KCAA Regulations Implemented
 
 | Regulation | Value |
 |------------|-------|
@@ -229,7 +229,7 @@ Over 20 drone models available including:
 | VLOS Required | Yes |
 | Minimum Pilot Age | 16 years |
 
-## 🔒 Security Features
+##  Security Features
 
 - JWT-based authentication
 - Password hashing with bcrypt
@@ -238,7 +238,7 @@ Over 20 drone models available including:
 - Secure session management
 - MongoDB injection prevention
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 drone-traffic-kosovo/
@@ -267,14 +267,3 @@ drone-traffic-kosovo/
         └── app.js            # Client JavaScript
 ```
 
-## ⚠️ Disclaimer
-
-This is a **simulation/educational project** and should not be used for actual drone flight planning. Always consult official aviation authorities and regulations before operating drones in Kosovo or any other jurisdiction.
-
-## 📄 License
-
-This project is for educational purposes. All Kosovo geographic data is approximated and should be verified against official sources.
-
----
-
-Built with ❤️ for drone enthusiasts and aviation technology
