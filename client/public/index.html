@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kosovo Drone Traffic Management System | KDTMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    :root {
+      --bg-primary: #0a0e14;
+      --bg-secondary: #0f1419;
+      --bg-tertiary: #151b23;
+      --bg-card: #1a2332;
+      --bg-card-hover: #1f2a3c;
+      --accent-primary: #00d4aa;
+      --accent-secondary: #00b894;
+      --accent-warning: #ffc107;
+      --accent-danger: #ff4757;
+      --accent-info: #3498db;
+      --text-primary: #ffffff;
+      --text-secondary: #a0aec0;
+      --text-muted: #5a6a7a;
+      --border-color: #2d3748;
+      --border-light: #3d4f65;
+      --gradient-primary: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+      --gradient-dark: linear-gradient(180deg, #0a0e14 0%, #151b23 100%);
+      --shadow-glow: 0 0 30px rgba(0, 212, 170, 0.15);
+      --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-display);
+      background: var(--gradient-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-light);
+    }
+
+    /* Loading Screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+    .loading-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loading-logo {
+      font-size: 3rem;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2rem;
+      letter-spacing: -1px;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    #getAiRecommendations{
+      display:none!important;
+    }
+
+    #closeAnalyticsModal{
+      color:#ffffff;
+    }
+
+    #closeAnalyticsModal:hover{
+      color:cyan;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 4px 15px rgba(0, 212, 170, 0.5), 0 2px 10px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 4px 25px rgba(0, 212, 170, 0.8), 0 2px 15px rgba(0,0,0,0.4); }
+      100% { box-shadow: 0 4px 15px rgba(0, 212, 170, 0.5), 0 2px 10px rgba(0,0,0,0.3); }
+    }
+    .drone-marker-active div {
+      animation: pulse 2s infinite;
+    }
+
+    /* Auth Container */
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: 
+        radial-gradient(ellipse at 20% 80%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(0, 184, 148, 0.05) 0%, transparent 50%),
+        var(--gradient-dark);
+    }
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-card), var(--shadow-glow);
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .auth-logo h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .auth-logo p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .auth-tab.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+    .auth-form {
+      display: none;
+    }
+    .auth-form.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+    }
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--gradient-primary);
+      color: var(--bg-primary);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+    }
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-light);
+    }
+    .btn-danger {
+      background: var(--accent-danger);
+      color: white;
+    }
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+    .error-message {
+      color: var(--accent-danger);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Main App */
+    .app-container {
+      display: none;
+      min-height: 100vh;
+    }
+    .app-container.active {
+      display: block;
+    }
+
+    /* Header */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(10, 14, 20, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      z-index: 1000;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .header-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .header-nav {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .nav-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover, .nav-btn.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+    .nav-btn.active {
+      color: var(--accent-primary);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .sim-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .sim-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .user-menu:hover {
+      background: var(--bg-card-hover);
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--bg-primary);
+    }
+    .user-info {
+      text-align: left;
+    }
+    .user-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Content */
+    .main-content {
+      margin-top: 64px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      height: calc(100vh - 64px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-section {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    /* Flight Tools */
+    .flight-tools {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .tool-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tool-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+    }
+    .tool-btn.active {
+      background: rgba(0, 212, 170, 0.1);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+    .tool-icon {
+      font-size: 1.5rem;
+    }
+    .tool-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* Flight Form */
+    .flight-form-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+    .form-section {
+      margin-bottom: 1.5rem;
+    }
+    .form-section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .waypoint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .waypoint-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+    .waypoint-marker {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--bg-primary);
+    }
+    .waypoint-coords {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .waypoint-remove {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      transition: color 0.2s;
+    }
+    .waypoint-remove:hover {
+      color: var(--accent-danger);
+    }
+    .empty-waypoints {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .drone-select {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .drone-option {
+      padding: 0.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .drone-option:hover {
+      border-color: var(--border-light);
+    }
+    .drone-option.selected {
+      border-color: var(--accent-primary);
+      background: rgba(0, 212, 170, 0.1);
+    }
+    .drone-option-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    .drone-option-specs {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* AI Panel */
+    .ai-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: rgba(0, 212, 170, 0.05);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .ai-icon {
+      font-size: 1.25rem;
+    }
+    .ai-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .ai-content {
+      padding: 1rem;
+    }
+    .ai-score {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .score-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .score-circle.high {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+      border: 2px solid var(--accent-primary);
+    }
+    .score-circle.medium {
+      background: rgba(255, 193, 7, 0.15);
+      color: var(--accent-warning);
+      border: 2px solid var(--accent-warning);
+    }
+    .score-circle.low {
+      background: rgba(255, 71, 87, 0.15);
+      color: var(--accent-danger);
+      border: 2px solid var(--accent-danger);
+    }
+    .score-details {
+      flex: 1;
+    }
+    .score-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+    .score-breakdown {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+    }
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .ai-suggestions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .ai-suggestion {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .weather-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .weather-item {
+      text-align: center;
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+    .weather-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .weather-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Map Area */
+    .map-area {
+      position: relative;
+      min-height: calc(100vh - 64px);
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-primary);
+      z-index: 1;
+    }
+    .map-overlay {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 1000;
+    }
+    .map-control {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .map-control-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .map-control-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+    .map-control-btn + .map-control-btn {
+      border-top: 1px solid var(--border-color);
+    }
+    .legend-panel {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      z-index: 1000;
+      max-width: 250px;
+    }
+    .legend-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .legend-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    .legend-color.airport { background: rgba(255, 71, 87, 0.6); }
+    .legend-color.military { background: rgba(255, 71, 87, 0.8); }
+    .legend-color.government { background: rgba(255, 152, 0, 0.6); }
+    .legend-color.active { background: var(--accent-primary); }
+    .legend-color.pending { background: var(--accent-warning); }
+    .legend-color.border { background: #00d4aa; }
+
+    /* Stats Panel */
+    .stats-panel {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      z-index: 1000;
+      min-width: 200px;
+    }
+    .stats-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .stat-value.active { color: var(--accent-primary); }
+    .stat-value.pending { color: var(--accent-warning); }
+    .stat-value.approved { color: var(--accent-info); }
+    .stat-value.total { color: var(--text-primary); }
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: modalIn 0.3s ease-out;
+    }
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      transition: color 0.2s;
+    }
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+    .modal-body {
+      padding: 1.5rem;
+    }
+    .modal-footer {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Terms Modal */
+    .terms-content {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .terms-content h4 {
+      color: var(--text-primary);
+      margin: 1rem 0 0.5rem;
+    }
+    .terms-content h4:first-child {
+      margin-top: 0;
+    }
+    .terms-content ul {
+      margin-left: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Flight List */
+    .flight-list-container {
+      display: none;
+    }
+    .flight-list-container.active {
+      display: block;
+    }
+    .flight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .flight-card:hover {
+      background: var(--bg-card-hover);
+      transform: translateX(4px);
+    }
+    .flight-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .flight-number {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .flight-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .flight-status.active {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+    }
+    .flight-status.pending {
+      background: rgba(255, 193, 7, 0.15);
+      color: var(--accent-warning);
+    }
+    .flight-status.approved {
+      background: rgba(52, 152, 219, 0.15);
+      color: var(--accent-info);
+    }
+    .flight-status.rejected {
+      background: rgba(255, 71, 87, 0.15);
+      color: var(--accent-danger);
+    }
+    .flight-status.completed {
+      background: rgba(160, 174, 192, 0.15);
+      color: var(--text-secondary);
+    }
+    .flight-card-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .flight-detail {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Alerts */
+    .alert-container {
+      position: fixed;
+      top: 80px;
+      right: 1rem;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease-out;
+      max-width: 400px;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    .alert-success {
+      background: rgba(0, 212, 170, 0.15);
+      border: 1px solid var(--accent-primary);
+      color: var(--accent-primary);
+    }
+    .alert-error {
+      background: rgba(255, 71, 87, 0.15);
+      border: 1px solid var(--accent-danger);
+      color: var(--accent-danger);
+    }
+    .alert-warning {
+      background: rgba(255, 193, 7, 0.15);
+      border: 1px solid var(--accent-warning);
+      color: var(--accent-warning);
+    }
+    .alert-message {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+    .alert-close {
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+    .alert-close:hover {
+      opacity: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: fixed;
+        left: -400px;
+        top: 64px;
+        bottom: 0;
+        width: 380px;
+        z-index: 999;
+        transition: left 0.3s;
+      }
+      .sidebar.open {
+        left: 0;
+      }
+      .stats-panel {
+        top: auto;
+        bottom: 1rem;
+      }
+    }
+
+    /* Custom Leaflet Styles */
+    .leaflet-container {
+      background: var(--bg-primary);
+      font-family: var(--font-display);
+    }
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+    .leaflet-popup-tip {
+      background: var(--bg-card);
+    }
+    .leaflet-popup-content {
+      margin: 0.75rem 1rem;
+    }
+    .leaflet-control-zoom {
+      border: none !important;
+    }
+    .leaflet-control-zoom a {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: var(--bg-card-hover) !important;
+    }
+    .drone-marker {
+      background: var(--accent-primary);
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drone-marker.pending {
+      background: var(--accent-warning);
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-logo">KDT</div>
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Auth Container -->
+  <div class="auth-container" id="authContainer">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>KDT</h1>
+        <p>Kosovo Drone Traffic Management System</p>
+      </div>
+      
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Sign In</button>
+        <button class="auth-tab" data-tab="register">Register</button>
+      </div>
+      
+      <!-- Login Form -->
+      <form class="auth-form active" id="loginForm" data-form="login">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" name="email" placeholder="pilot@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" name="password" placeholder="Enter your password" required>
+        </div>
+        <div id="loginError" class="error-message" style="display: none;"></div>
+        <button type="submit" class="btn btn-primary">Sign In to Dashboard</button>
+      </form>
+      
+      <!-- Register Form -->
+      <form class="auth-form" id="registerForm" data-form="register">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input type="text" class="form-input" name="firstName" placeholder="John" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input type="text" class="form-input" name="lastName" placeholder="Doe" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" name="email" placeholder="pilot@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" class="form-input" name="phone" placeholder="+383 44 123 456">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Organization (Optional)</label>
+          <input type="text" class="form-input" name="organization" placeholder="Company or Organization">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" name="password" placeholder="Min. 8 characters" required minlength="8">
+        </div>
+        <div id="registerError" class="error-message" style="display: none;"></div>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div class="app-container" id="appContainer">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo">
+          <img src="/kdt_logo.png"> 
+        </div>
+        <nav class="header-nav">
+          <button class="nav-btn active" data-view="map">Live Map</button>
+          <button class="nav-btn" data-view="flights">My Flights</button>
+          <button class="nav-btn" id="analyticsBtn" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">📊 Analytics</button>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="sim-status">
+          <span class="sim-dot"></span>
+          <span>Simulation Active</span>
+        </div>
+        <div class="user-menu" id="userMenu">
+          <div class="user-avatar" id="userAvatar">JD</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">John Doe</div>
+            <div class="user-role">Drone Pilot</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">Flight Planning Tools</div>
+          <div class="flight-tools">
+            <button class="tool-btn" data-tool="waypoint" title="Add waypoints">
+              <span class="tool-icon">📍</span>
+              <span class="tool-label">Waypoints</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Draw circle area">
+              <span class="tool-icon">⭕</span>
+              <span class="tool-label">Circle Area</span>
+            </button>
+            <button class="tool-btn" data-tool="rectangle" title="Draw rectangle area">
+              <span class="tool-icon">▢</span>
+              <span class="tool-label">Rectangle</span>
+            </button>
+            <button class="tool-btn" data-tool="clear" title="Clear all">
+              <span class="tool-icon">🗑️</span>
+              <span class="tool-label">Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flight-form-container" id="flightFormContainer">
+          <form id="flightForm">
+            <!-- Waypoints Section -->
+            <div class="form-section">
+              <div class="form-section-title"> Flight Path</div>
+              <div class="waypoint-list" id="waypointList">
+                <div class="empty-waypoints">Click on the map to add waypoints</div>
+              </div>
+            </div>
+
+            <!-- Timing Section -->
+            <div class="form-section">
+              <div class="form-section-title"> Flight Schedule</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Start Date/Time</label>
+                  <input type="datetime-local" class="form-input" name="scheduledStart" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Duration (min)</label>
+                  <input type="number" class="form-input" name="duration" value="30" min="5" max="120" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Drone Section -->
+            <div class="form-section">
+              <div class="form-section-title"> Drone Selection</div>
+              <div class="form-group">
+                <label class="form-label">Select Drone</label>
+                <select class="form-input" name="droneSelect" id="droneSelect" required>
+                  <optgroup label="DJI Consumer">
+                    <option value="mavic3" selected>DJI Mavic 3 Pro (0.9kg, 75km/h, 43min)</option>
+                    <option value="mini4">DJI Mini 4 Pro (0.25kg, 57km/h, 34min)</option>
+                    <option value="air3">DJI Air 3 (0.72kg, 75km/h, 46min)</option>
+                    <option value="avata2">DJI Avata 2 (0.38kg, 60km/h, 23min)</option>
+                  </optgroup>
+                  <optgroup label="DJI Enterprise">
+                    <option value="matrice350">DJI Matrice 350 RTK (6.5kg, 55km/h, 55min)</option>
+                    <option value="matrice30">DJI Matrice 30T (3.8kg, 82km/h, 41min)</option>
+                    <option value="mavic3e">DJI Mavic 3 Enterprise (0.92kg, 75km/h, 45min)</option>
+                  </optgroup>
+                  <optgroup label="Autel">
+                    <option value="evo2">Autel EVO II Pro (1.2kg, 72km/h, 42min)</option>
+                    <option value="evo2enterprise">Autel EVO II Enterprise (1.4kg, 70km/h, 40min)</option>
+                    <option value="evonano">Autel EVO Nano+ (0.25kg, 54km/h, 28min)</option>
+                  </optgroup>
+                  <optgroup label="Parrot">
+                    <option value="anafi">Parrot Anafi AI (0.9kg, 55km/h, 32min)</option>
+                    <option value="anafiusa">Parrot Anafi USA (0.5kg, 55km/h, 32min)</option>
+                  </optgroup>
+                  <optgroup label="Skydio">
+                    <option value="skydio2">Skydio 2+ (0.8kg, 58km/h, 27min)</option>
+                    <option value="skydiox2">Skydio X2 (1.0kg, 58km/h, 35min)</option>
+                  </optgroup>
+                  <optgroup label="Fixed Wing">
+                    <option value="ebeex">senseFly eBee X (1.3kg, 110km/h, 90min)</option>
+                    <option value="wingtra">WingtraOne (4.5kg, 65km/h, 59min)</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option value="fimi">FIMI X8 Mini (0.25kg, 57km/h, 31min)</option>
+                    <option value="hubsan">Hubsan Zino Mini Pro (0.25kg, 57km/h, 40min)</option>
+                    <option value="diy">🔧 DIY / Custom Drone</option>
+                  </optgroup>
+                </select>
+              </div>
+              
+              <!-- DIY Drone Options (hidden by default) -->
+              <div id="diyDroneOptions" style="display: none;">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Drone Type</label>
+                    <select class="form-input" name="diyType" id="diyType">
+                      <option value="multirotor">Multirotor (Quadcopter)</option>
+                      <option value="hexacopter">Hexacopter</option>
+                      <option value="octocopter">Octocopter</option>
+                      <option value="fixed-wing">Fixed Wing</option>
+                      <option value="vtol">VTOL Hybrid</option>
+                      <option value="helicopter">Helicopter</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Weight (kg)</label>
+                    <input type="number" class="form-input" name="diyWeight" id="diyWeight" value="1.0" min="0.1" max="25" step="0.1">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Max Speed (km/h)</label>
+                    <input type="number" class="form-input" name="diySpeed" id="diySpeed" value="50" min="10" max="150">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Max Flight Time (min)</label>
+                    <input type="number" class="form-input" name="diyFlightTime" id="diyFlightTime" value="20" min="5" max="120">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Max Altitude (m)</label>
+                    <input type="number" class="form-input" name="diyMaxAlt" id="diyMaxAlt" value="120" min="30" max="500">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Manufacturer / Model</label>
+                    <input type="text" class="form-input" name="diyModel" id="diyModel" placeholder="e.g., Custom Build X1">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flight Parameters -->
+            <div class="form-section">
+              <div class="form-section-title"> Flight Parameters</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Max Altitude (m)</label>
+                  <input type="number" class="form-input" name="maxAltitude" value="100" min="10" max="120" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Purpose</label>
+                  <select class="form-input" name="purpose" required>
+                    <option value="recreational">Recreational</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="photography">Photography</option>
+                    <option value="survey">Survey/Mapping</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="agriculture">Agriculture</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <input type="text" class="form-input" name="description" placeholder="Brief description of your flight">
+              </div>
+            </div>
+
+            <!-- AI Recommendations Panel -->
+            <div class="ai-panel" id="aiPanel" style="display: none;">
+              <div class="ai-header">
+                <span class="ai-icon">🤖</span>
+                <span class="ai-title">AI Flight Analysis</span>
+              </div>
+              <div class="ai-content">
+                <div class="ai-score">
+                  <div class="score-circle high" id="aiScoreCircle">85</div>
+                  <div class="score-details">
+                    <div class="score-label">Flight Viability Score</div>
+                    <div class="score-breakdown">
+                      <span class="score-item">☁️ <span id="weatherScore">90</span></span>
+                      <span class="score-item">🚦 <span id="trafficScore">80</span></span>
+                      <span class="score-item">🏔️ <span id="terrainScore">85</span></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ai-suggestions" id="aiSuggestions"></div>
+                <div class="weather-info" id="weatherInfo">
+                  <div class="weather-item">
+                    <div class="weather-value" id="weatherTemp">18°C</div>
+                    <div class="weather-label">Temperature</div>
+                  </div>
+                  <div class="weather-item">
+                    <div class="weather-value" id="weatherWind">12 km/h</div>
+                    <div class="weather-label">Wind Speed</div>
+                  </div>
+                  <div class="weather-item">
+                    <div class="weather-value" id="weatherVis">10 km</div>
+                    <div class="weather-label">Visibility</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Risk Analysis Panel -->
+            <div class="ai-panel" id="riskPanel" style="display: none;">
+              <div class="ai-header" style="background: linear-gradient(135deg, #ff6b6b, #ee5a24);">
+                <span class="ai-icon">⚠️</span>
+                <span class="ai-title">Risk Analysis</span>
+              </div>
+              <div class="ai-content" id="riskContent">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Route Optimization Panel -->
+            <div class="ai-panel" id="routePanel" style="display: none;">
+              <div class="ai-header" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                <span class="ai-icon"></span>
+                <span class="ai-title">Route Optimization</span>
+              </div>
+              <div class="ai-content" id="routeContent">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+              <button type="button" class="btn btn-secondary" id="getAiRecommendations" style="width: 100%; margin-bottom: 0.75rem;">
+                 Get AI Recommendations
+              </button>
+              <button type="button" class="btn btn-secondary" id="getRiskAnalysis" style="width: 100%; margin-bottom: 0.75rem; background: linear-gradient(135deg, #ff6b6b, #ee5a24);">
+                ⚠️ Risk Analysis
+              </button>
+              <button type="button" class="btn btn-secondary" id="getRouteOptimization" style="width: 100%; margin-bottom: 0.75rem; background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                 Optimize Route
+              </button>
+              <button type="submit" class="btn btn-primary" style="width: 100%;">
+                 Submit Flight Request
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Flight List View -->
+        <div class="flight-list-container" id="flightListContainer">
+          <div class="sidebar-section" style="border-bottom: none;">
+            <div class="sidebar-title">Your Flights</div>
+            <div id="flightList"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Map Area -->
+      <main class="map-area">
+        <div id="map"></div>
+        
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+          <div class="stats-title">
+            <span class="sim-dot"></span>
+            Live Traffic
+          </div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value active" id="statActive">0</div>
+              <div class="stat-label">Active Drones</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value pending" id="statPending">0</div>
+              <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value approved" id="statApproved">0</div>
+              <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="statAirplanes" style="color: #f59e0b;">0</div>
+              <div class="stat-label">✈️ Aircraft</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-panel">
+          <div class="legend-title">Map Legend</div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color airport"></div>
+              <span>Airport No-Fly Zone</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #f59e0b;"></div>
+              <span>Commercial Aircraft</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color military"></div>
+              <span>Military/Security Zone</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color government"></div>
+              <span>Government/Diplomatic</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color active"></div>
+              <span>Active Drone</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color pending"></div>
+              <span>Pending Flight</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color border"></div>
+              <span>Kosovo Airspace</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Terms Modal -->
+  <div class="modal-overlay" id="termsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">🏛️ Kosovo Civil Aviation Authority - Terms & Conditions</h3>
+        <button class="modal-close" id="closeTermsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="terms-content">
+          <h4>KCAA Drone Flight Regulations</h4>
+          <p>By using this system, you agree to comply with all Kosovo Civil Aviation Authority (KCAA) regulations governing unmanned aerial vehicle (UAV) operations.</p>
+          
+          <h4>General Requirements</h4>
+          <ul>
+            <li>Maximum flight altitude: 120 meters Above Ground Level (AGL)</li>
+            <li>Visual Line of Sight (VLOS) must be maintained at all times</li>
+            <li>Daylight operations only (06:00 - 20:00 local time)</li>
+            <li>Minimum visibility: 3,000 meters</li>
+            <li>Maximum wind speed for operations: 40 km/h</li>
+          </ul>
+
+          <h4>Restricted Zones</h4>
+          <ul>
+            <li>No flights within 8km of Prishtina International Airport</li>
+            <li>No flights within 5km of Gjakova Airport</li>
+            <li>No flights over military installations, government buildings, or diplomatic facilities</li>
+            <li>No flights over critical infrastructure</li>
+          </ul>
+
+          <h4>Pilot Requirements</h4>
+          <ul>
+            <li>Minimum age: 16 years</li>
+            <li>Drone registration required</li>
+            <li>Third-party liability insurance mandatory</li>
+            <li>Completion of safety training recommended</li>
+          </ul>
+
+          <h4>Penalties</h4>
+          <p>Violation of these regulations may result in fines, confiscation of equipment, and/or criminal prosecution under Kosovo aviation law.</p>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;">
+          ⚠️ By clicking "I Agree", you confirm that you have read, understood, and agree to comply with all KCAA drone flight regulations.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="declineTerms">Decline</button>
+        <button class="btn btn-primary" id="acceptTerms">I Agree to Terms</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flight Submission Modal -->
+  <div class="modal-overlay" id="submissionModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="submissionTitle">Flight Request Submitted</h3>
+        <button class="modal-close" id="closeSubmissionModal">✕</button>
+      </div>
+      <div class="modal-body" id="submissionBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeSubmission">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Modal -->
+  <div class="modal-overlay" id="analyticsModal">
+    <div class="modal" style="max-width: 950px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+        <h3 class="modal-title">📊 Predictive Analytics Dashboard</h3>
+        <button class="modal-close" id="closeAnalyticsModal">✕</button>
+      </div>
+      <div class="modal-body" id="analyticsBody" style="padding: 1.5rem; max-height: 75vh; overflow-y: auto;">
+        <div style="text-align: center; padding: 2rem;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top: 1rem; color: var(--text-secondary);">Loading analytics...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Container -->
+  <div class="alert-container" id="alertContainer"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

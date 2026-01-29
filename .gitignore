@@ -1,0 +1,33 @@
+﻿# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+
+# Environment files (contains secrets!)
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Operating System
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Database
+*.sqlite
+*.db
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+*.tmp
+.cache/
+coverage/
